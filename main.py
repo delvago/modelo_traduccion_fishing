@@ -102,7 +102,7 @@ async def detectar_phishing_logica(textos_a_analizar: List[str]) -> List[Dict[st
 async def root():
     return {"message":"Bienvenido a la API de Deteccion de phishing"}
 
-@app.post("/traducir")
+@app.post("/traducir/")
 async def traducir_endpoint(textos_input: TextosEntrada):
     """
     Traduce una lista de textos del español al inglés.
