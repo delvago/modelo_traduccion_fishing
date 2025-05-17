@@ -43,7 +43,7 @@ app = FastAPI(
 
 # --- Definición de los datos de entrada (Request Body) ---
 # Esto ayuda a FastAPI a validar los datos que recibe la API
-class TextosParaTraducir(BaseModel):
+class TextosEntrada(BaseModel):
     textos: List[str] # Esperamos un JSON con una clave "textos" que sea una lista de strings
 
 class TextosParaPhishing(BaseModel):
@@ -84,14 +84,12 @@ async def detectar_phishing_logica(textos_a_analizar: List[str]) -> List[Dict[st
                 raise HTTPException(status_code=500, detail="Configuración de etiquetas del modelo de phishing no encontradas.")
             
             etiqueta_predicha = model_phishing.config.id2label[pred_id]
-            prob_predicha = probabilidades[i, pred_id].item()
+            prob_predicha = probabilidades[i][pred_id].item()
 
             resultado = {
-                "texto_traducido": textos_a_analizar[i],
+                "texto_original": textos_a_analizar[i],
                 "prediccion" : "phishing" if etiqueta_predicha.lower() == "phishing" else "benigno",
-                "probabilidad_phishing" : round(prob_predicha, 4) if etiqueta_predicha.lower() == "phishing" else round(1 - prob_predicha, 4),
-                "etiqueta_modelo" : etiqueta_predicha,
-                "confianza_prediccion" : round(prob_predicha, 4)
+                "confianza" : round(prob_predicha, 4)
             }
             lista_resultados.append(resultado)
         return lista_resultados
@@ -126,67 +124,40 @@ async def detectar_phishing_endpoint(textos_input: TextosParaPhishing):
     resultados = await detectar_phishing_logica(textos_input.textos)
     return {"resultados_phishing": resultados}
 
+# --- Endpoint combinado ---
+@app.post("/analizar-textos/")
+async def analizar_textos_completos(textos_input: TextosEntrada):
+    textos_originales = textos_input.textos
+    if not textos_originales:  
+        raise HTTPException(status_code=400, detail="No se recibieron textos para analizar.")
+    print(f"Analizando textos completos: {textos_originales}")
 
-
-
-# @app.post("/traducir")# Usamos POST porque el cliente enviará datos (el texto a traducir)
-# async def traducir_textos_endpoint(textos_input: TextosParaTraducir):
-#     """
-#     Traduce una lista de textos del español al inglés.
-#     """
-#     if not tokenizer_traductor or not model_traductor:
-#         return {"error": "Modelo de traducción no cargado. Revisa los logs del servidor"}
-    
-#     textos_a_traducir = textos_input.textos # Accedemos a la lista de textos
-#     if not textos_a_traducir:
-#         return {"error": "No se recibieron textos para traducir."}
-    
-#     try:
-#         print(f"Traduciendo los siguientes textos: {textos_a_traducir}")
-#         inputs = tokenizer_traductor(textos_a_traducir, return_tensors="pt", padding=True, truncation=True)#truncation=True para asegurarnos de que no exceda el tamaño máximo
-#         outputs = model_traductor.generate(**inputs)
-#         traducciones = tokenizer_traductor.batch_decode(outputs, skip_special_tokens=True)
-#         print(f"Traducciones: {traducciones}")
-#         return {"traducciones": traducciones}
-#     except Exception as e:
-#         print(f"Error al traducir: {e}")
-#         return {"error": f"Ocurrio un error al traducir: {e}"}
-    
-@app.post("/phishing")
-async def phishing_endpoint(textos_input: TextosParaPhishing):
-    """
-    Detecta si una lista (en ingles) son phishing.
-    """
-    if not tokenizer_phishing or not model_phishing:
-        return {"error": "Modelo de phishing no cargado. Revisa los logs del servidor"}
-    
-    textos_a_analizar = textos_input.textos
-    if not textos_a_analizar:
-        return {"error": "No se recibieron textos para detectar phishing."}
+    # Traducción
     try:
-        print(f"Detectando phishing en los siguientes textos: {textos_a_analizar}")
-        inputs = tokenizer_phishing(textos_a_analizar, return_tensors="pt", padding=True, truncation=True, max_length=512)#Bert funciona mejor con max_length=512
-        outputs = model_phishing(**inputs)
-        logits = outputs.logits
-        probabilidades = softmax(logits, dim=1) # Aplicamos softmax para obtener probabilidades
-        predicciones_id = argmax(probabilidades, dim=1)
-
-        lista_resultados = []
-        for i in range(len(predicciones_id)):
-            pred_id = predicciones_id[i].item()
-            etiqueta_predicha = model_phishing.config.id2label[pred_id]
-            prob_predicha = probabilidades[i][pred_id].item()
-
-            resultado = {
-                "texto_original": textos_a_analizar[i],
-                "prediccion": "phishing" if etiqueta_predicha.lower() == "phishing" else "benigno", # Asegurar minúsculas para la comparación
-                "probabilidad": round(prob_predicha, 4)
-            }
-            lista_resultados.append(resultado)
-        
-        print(f"Resultados de phishing: {lista_resultados}")
-        return {"resultados": lista_resultados}
-    
+        textos_traducidos = await traducir_textos_logica(textos_originales)
+        print(f"Textos traducidos: {textos_traducidos}")
+    except HTTPException as e:
+        raise e
     except Exception as e:
-        print(f"Error al detectar phishing: {e}")
-        return {"error": f"Ocurrio un error al detectar phishing: {e}"}
+        print(f"Error al traducir: {e}")
+        raise HTTPException(status_code=500, detail=f"Error interno durante la traducción")
+    
+    # Detección de phishing
+    try: 
+        resultados_phishing = await detectar_phishing_logica(textos_traducidos)
+        print(f"Resultados de phishing: {resultados_phishing}")
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        print(f"Error al realizar el análisis completo: {e}")
+        raise HTTPException(status_code=500, detail=f"Error interno durante la detección de phishing")              
+
+    # Resultados
+    respuesta_final = []
+    for i in range (len(textos_originales)):
+        respuesta_final.append({
+            "texto_original_es": textos_originales[i],
+            "texto_traducido_en": textos_traducidos[i] if i < len(textos_traducidos) else "Error en traducción",
+            "analisis_phishing": resultados_phishing[i] if i < len(resultados_phishing) else {"error": "Error en análisis de phishing"}
+        })
+    return {"analisis_completo": respuesta_final}
