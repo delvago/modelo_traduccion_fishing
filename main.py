@@ -3,6 +3,10 @@ from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, AutoModelForSeque
 from pydantic import BaseModel # Para definir la estructura de los datos de entrada
 from typing import List, Dict, Any # Para especificar que esperamos una lista de textos
 from torch import argmax, softmax
+import os
+
+# --- Modificacion de variables de entorno ---
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'  # Cambia '0' a '1' para habilitar oneDNN; para evitar un mensaje de error en la carga del código
 
 # --- Carga de los modelos (Se ejecuta una sola vez al iniciar la app) ---
 
@@ -62,7 +66,7 @@ async def traducir_textos_logica(textos_a_traducir: List[str]) -> List[str]:
         return traducciones
     except Exception as e:
         print(f"Error al traducir: {e}")
-        raise HTTPException(status_code=500, detail=f"Error interno en el servicio de traducción: {stre(e)}")
+        raise HTTPException(status_code=500, detail=f"Error interno en el servicio de traducción: {str(e)}")
 
 async def detectar_phishing_logica(textos_a_analizar: List[str]) -> List[Dict[str, Any]]:
     if not tokenizer_phishing or not model_phishing:
