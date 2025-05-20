@@ -3,10 +3,20 @@ import requests # Para hacer peticiones HTTP a FastAPI
 import json # Para manejar el payload y la respuesta
 
 #Titulo de la aplicación
-st.set_page_config(page_title="Detección de Phishing", layout="wide", initial_sidebar_state="auto")
+st.set_page_config(page_title="Detección de Phishing", layout="wide", initial_sidebar_state="auto", 
+                   page_icon="https://cdn-icons-png.freepik.com/512/333/333563.png")
+
+
+# --- Configuración de la página ---
+col1, col2 = st.columns([1, 10])
+#Icono de la aplicación
+with col1:
+    st.image("https://cdn-icons-png.freepik.com/512/333/333563.png", width=80)
 
 #Título principal de la aplicación
-st.title("Herramienta de detección de Phishing")
+with col2:
+    st.title("Herramienta de detección de Phishing")
+
 
 #Descripción de la aplicación
 st.markdown("""Bienvenido a la herramienta de detección de phishing. Ingresa el contenido de los correos electrónicos que quieres analizar
@@ -48,13 +58,13 @@ if st.button("Analizar textos"):
                     if "analisis_completo" in resultados_api and resultados_api["analisis_completo"]:
                         for i, item in enumerate(resultados_api["analisis_completo"]):
                             st.markdown(f"---")
-                            st.markdown(f"texto original: {i+1}")
-                            st.text_area(f"Original{i+1}", item.get('texto_original_es', 'N/A'), height=70, disabled=True, key=f"orig_es_{i}")#key Es un argumento de palabra clave crucial cuando se crean widgets dentro de un bucle en Streamlit.
+                            st.markdown(f"Texto de entrada: {i+1}")
+                            st.text_area(f"Texto {i+1}", item.get('texto_original_es', 'N/A'), height=70, disabled=True, key=f"orig_es_{i}")#key Es un argumento de palabra clave crucial cuando se crean widgets dentro de un bucle en Streamlit.
                             analisis = item.get("analisis_phishing", {})
                             prediccion = analisis.get("prediccion", "N/A")
                             confianza = analisis.get("confianza", 0) * 100 # Convertir a porcentaje
 
-                            st.markdown(f"-- Analisis de phishing ---")
+                            st.markdown(f"-- Analisis de phishing --")
                             if prediccion.lower() == "phishing":
                                 st.error(f"Predicción: Phishing (Confianza : {confianza:.2f}%)")
                             elif prediccion.lower() == "benigno":
@@ -63,7 +73,7 @@ if st.button("Analizar textos"):
                                 st.info(f"Predicción: {prediccion} (Confianza : {confianza:.2f}%)")
                             
                             # Mostrar el resultado completo del análisis si se desea
-                            with st.expander("Ver detalles completos del análisis"):
+                            with st.expander("Ver detalles completos del análisis:"):
                                 st.json(analisis)
                         st.markdown(f"---")
                     else:
