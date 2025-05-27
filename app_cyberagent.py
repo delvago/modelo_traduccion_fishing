@@ -34,7 +34,7 @@ if st.button("Envia tu solicitud"):
             st.warning("No se ingresó una solicitud válida para enviar.")
         else:
             with st.spinner("Enviando solicitud al agente... Esto puede tardar unos segundos"):     
-                # Llamando la función del agente
+                # LLAMAR LA FUNCIÓN REAL DEL AGENTE AQUÍ
                 #respuesta = funcion(globals.solicitud)
                 respuesta = solicitud + " Ejemplo de respuesta del agente: 'El correo electrónico es sospechoso de ser phishing.'"#Eliminar cuando este la función real del agente
                 st.subheader("Respuesta del agente:")
@@ -44,7 +44,3 @@ if st.button("Envia tu solicitud"):
                     st.error("No se pudo obtener una respuesta del agente. Intenta nuevamente más tarde.")
     elif st.session_state.get("button_clicked_once", False):
         st.warning("Por favor, ingresa una solicitud para enviar al agente.")
-
-        
-    
-
