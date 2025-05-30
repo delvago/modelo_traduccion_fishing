@@ -69,13 +69,11 @@ if prompt := st.chat_input("Ingresa tu solicitud al Cyber Agent. Ejemplo: 'Inspe
                 st.error(error_msg)
                 st.session_state.messages.append({"role":"assistant", "content" : error_msg})
 with st.sidebar:
-    st.divider()
     st.header("Acerca de Cyber Agent")
     st.markdown("Version 0.1")
     st.subheader("Enlaces Útiles")
     st.markdown("[Repositorio de GitHub](https://github.com/jcvillaaa/project_bootcam)")
-    st.divider()  
-    st.markdown("<div style='margin-top: 208px;'></div>", unsafe_allow_html=True)# Espacio para el boton de limpiar el historial   
+    st.markdown("<div style='margin-top: 340px;'></div>", unsafe_allow_html=True)# Espacio para el boton de limpiar el historial   
     if st.button("Limpiar Historial de Chat"):
         st.session_state.messages = []
         st.rerun()
